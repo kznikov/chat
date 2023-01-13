@@ -1,0 +1,95 @@
+version: "3.3"
+
+services:
+
+  ws-server:
+    container_name: ws-server
+    image: ws-server
+    build: ws-server
+    hostname: ws-server
+    env_file:
+      - .env
+    volumes:
+      - ../ws-server:/var/www/ws-server
+    ports:
+      - 9502:9502
+    depends_on:
+      - database
+      - elasticsearch
+    restart: unless-stopped
+
+  api:
+    container_name: api
+    image: api
+    build: api
+    hostname: api
+    env_file:
+      - .env
+    volumes:
+      - ../api:/var/www/api
+    ports:
+      - 8080:8080
+    depends_on:
+      - database
+      - elasticsearch
+      - redis
+    restart: unless-stopped
+
+  elasticsearch:
+    image: 'elasticsearch:7.12.1'
+    container_name: elasticsearch
+    env_file:
+      - .env
+    ports:
+      - 9200:9200
+    restart: unless-stopped
+
+  #  kibana:
+  #    container_name: kibana
+  #    image: docker.elastic.co/kibana/kibana:7.4.0
+  #    hostname: kibana
+  #    env_file:
+  #      - .env
+  #    ports:
+  #      - 5601:5601
+  #    depends_on:
+  #      - elasticsearch
+  #    restart: unless-stopped
+
+  redis:
+    container_name: redis
+    image: redis:4-alpine
+    hostname: redis
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+
+  ui:
+    container_name: ui
+    image: ui
+    build: ui
+    hostname: ui
+    env_file:
+      - .env
+    volumes:
+      - ../ui:/var/www/ui
+    ports:
+      - 3000:3000
+    depends_on:
+      - ws-server
+      - api
+    restart: unless-stopped
+
+  database:
+    container_name: database
+    image: mariadb:10.7.3
+    hostname: database
+    env_file:
+      - .env
+    volumes:
+      - ./database/chat.sql:/docker-entrypoint-initdb.d/chat.sql
+    ports:
+      - 3308:3306
+    restart: unless-stopped
+
